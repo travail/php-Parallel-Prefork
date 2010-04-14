@@ -28,7 +28,7 @@ function main()
 
 function loadConfig()
 {
-    echo "Load configuratioin\n";
+    echo "Load configuration\n";
 }
 
 function workChildren()
