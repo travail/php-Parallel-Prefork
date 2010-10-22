@@ -44,7 +44,7 @@ class Parallel_Prefork
         }
 
         // for debugging
-        if ($this->maxWorkers == 0) {
+        if ($this->maxWorkers === 0) {
             return true;
         }
 
@@ -53,12 +53,12 @@ class Parallel_Prefork
             $pid = null;
             if (count(array_keys($this->workerPids)) < $this->maxWorkers) {
                 $pid = pcntl_fork();
-                if ($pid == -1) {
+                if ($pid === -1) {
                     echo "fork faild!\n";
                     sleep($this->errRespawnInterval);
                     continue;
                 }
-                if ($pid == 0) {
+                if ($pid === 0) {
                     // child process
                     $this->inChild = true;
                     foreach (array_keys($this->trapSignals) as $sig) {
@@ -78,7 +78,7 @@ class Parallel_Prefork
                 $this->_runChildReapCb($exitPid, $status);
                 if (
                     isset($this->workerPids[$exitPid])
-                    && $this->workerPids[$exitPid] == $this->generation
+                    && $this->workerPids[$exitPid] === $this->generation
                     && pcntl_wifexited($status) !== true
                     ) {
                     sleep($this->errRespawnInterval);
@@ -96,7 +96,7 @@ class Parallel_Prefork
 
     public function finish($exitCode = 0)
     {
-        if ($this->maxWorkers == 0) {
+        if ($this->maxWorkers === 0) {
             return;
         }
         exit($exitCode);
