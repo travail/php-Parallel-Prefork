@@ -1,8 +1,10 @@
 <?php
 
+namespace Parallel;
+
 declare(ticks = 1);
 
-class Parallel_Prefork
+class Prefork
 {
     public $trapSignals = array(
         SIGTERM => SIGTERM,
@@ -54,7 +56,7 @@ class Parallel_Prefork
             if (count(array_keys($this->workerPids)) < $this->maxWorkers) {
                 $pid = pcntl_fork();
                 if ($pid === -1) {
-                    echo "fork faild!\n";
+                    echo "fork failed!\n";
                     sleep($this->errRespawnInterval);
                     continue;
                 }

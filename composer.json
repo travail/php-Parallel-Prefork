@@ -1,0 +1,19 @@
+{
+  "name": "travail/php-parallel-prefork",
+  "description": "A simple prefork server framework",
+  "license": "MIT",
+  "minimum-stability": "dev",
+  "require": {
+    "php": ">=5.3",
+    "ext-posix": "*",
+    "ext-pcntl": "*"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "3.7.*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Parallel\\": "lib"
+    }
+  }
+}

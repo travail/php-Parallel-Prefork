@@ -1,14 +1,15 @@
 <?php
 
-set_include_path(dirname(__FILE__) . '/../lib');
-require_once('Parallel/Prefork.php');
+use \Parallel\Prefork;
+
+require_once __DIR__ . '/../vendor/autoload.php';
 
 main();
 exit();
 
 function main()
 {
-    $pp = new Parallel_Prefork(array(
+    $pp = new Prefork(array(
         'max_workers'  => 5,
         'trap_signals' => array(
             SIGHUP  => SIGTERM,
