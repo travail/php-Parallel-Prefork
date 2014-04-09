@@ -1,7 +1,7 @@
 {
-  "name": "travail/php-parallel-prefork",
+  "name": "travail/parallel-prefork",
   "description": "A simple prefork server framework",
-  "license": "MIT",
+  "license": "PHP-3.0",
   "minimum-stability": "dev",
   "require": {
     "php": ">=5.3",
