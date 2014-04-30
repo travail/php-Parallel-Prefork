@@ -34,6 +34,27 @@ while ($pp->signalReceived() !== SIGTERM) {
 $pp->waitAllChildren();
 ```
 
+## INSTALLATION
+
+To install this package into your project via composer, add the following snippet to your `composer.json`. Then run `composer install`.
+
+```
+"require": {
+    "travail/parallel-prefork": "dev-master"
+}
+```
+
+If you want to install from gihub, add the following:
+
+```
+"repositories": [
+    {
+        "type": "vcs",
+        "url": "git@github.com:travail/php-Parallel-Prefork.git"
+    }
+]
+```
+
 ## DESCRIPTION
 
 `\Parallel\Prefork` supports graceful shutdown and run-time reconfiguration.
@@ -79,7 +100,7 @@ Blocks until all worker processes exit. Only usable from manager process.
 
 ### THANKS TO
 
-[Kazuho Oku](https://metacpan.org/pod/release/KAZUHO/Parallel-Prefork-0.09/lib/Parallel/Prefork.pm)
+[Kazuho Oku](https://metacpan.org/pod/release/KAZUHO/Parallel-Prefork-0.05/lib/Parallel/Prefork.pm)
 
 ### AUTHOR
 
