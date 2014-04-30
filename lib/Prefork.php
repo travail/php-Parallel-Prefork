@@ -16,7 +16,7 @@ class Prefork
     private $worker_pids         = array();
     private $generation          = 0;
 
-    function __construct($args = array())
+    function __construct(array $args = array())
     {
         $this->max_workers = isset($args['max_workers'])
             ? $args['max_workers'] : $this->max_workers;
