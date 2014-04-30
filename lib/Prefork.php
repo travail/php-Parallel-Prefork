@@ -6,15 +6,31 @@ declare(ticks = 1);
 
 class Prefork
 {
-    public $trap_signals         = array(SIGTERM => SIGTERM);
-    public $max_workers          = 10;
+    /**
+     * @var array Manager process will trap the signals listed in the keys of the array, and send the signal specified in the associated value to all worker processes.
+     */
+    public $trap_signals = array(SIGTERM => SIGTERM);
+
+    /**
+     * @var integer The number of the workers
+     */
+    public $max_workers = 10;
+
+    /**
+     * @var integer number of seconds to deter spawning of child processes after a worker exits abnormally
+     */
     public $err_respawn_interval = 1;
-    public $manager_pid          = null;
-    public $on_child_reap        = null;
-    public $signal_received      = null;
-    private $in_child            = false;
-    private $worker_pids         = array();
-    private $generation          = 0;
+
+    /**
+     * @var callable lamda function that is called when a child is reaped
+     */
+    public $on_child_reap = null;
+
+    private $signal_received = null;
+    private $manager_pid     = null;
+    private $in_child        = false;
+    private $worker_pids     = array();
+    private $generation      = 0;
 
     function __construct(array $args = array())
     {
@@ -33,6 +49,11 @@ class Prefork
         $this->signal_received = $sig;
     }
 
+    /**
+     * The main routine. Returns true within manager process upon receiving a signal specified in the trap_signals, false in child processes.
+     *
+     * @return bool True in manager proccess, false in child processes
+     */
     public function start()
     {
         $this->manager_pid     = posix_getpid();
@@ -92,6 +113,9 @@ class Prefork
         return true;
     }
 
+    /**
+     * Child processes (when executed by a zero-argument call to start) should call this function for termination. Takes exit code as an optional argument. Only usable from child processes.
+     */
     public function finish($exitCode = 0)
     {
         if ($this->max_workers === 0) return;
@@ -99,6 +123,9 @@ class Prefork
         exit($exitCode);
     }
 
+    /**
+     * Blocks until all worker processes exit. Only usable from manager process.
+     */
     public function waitAllChildren()
     {
         foreach (array_keys($this->worker_pids) as $pid) {
@@ -109,6 +136,9 @@ class Prefork
         }
     }
 
+    /**
+     * Sends signal to all worker processes. Only usable from manager process.
+     */
     public function signalAllChildren($sig)
     {
         foreach (array_keys($this->worker_pids) as $pid) {
@@ -116,12 +146,15 @@ class Prefork
         }
     }
 
+    /**
+     * Returns the received signal.
+     */
     public function signalReceived()
     {
         return $this->signal_received;
     }
 
-    public function generation()
+    private function generation()
     {
         return $this->generation;
     }
