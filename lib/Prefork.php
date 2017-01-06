@@ -47,8 +47,6 @@ class Prefork
             ? $args['max_workers'] : $this->max_workers;
         $this->trap_signals = isset($args['trap_signals'])
             ? $args['trap_signals'] : $this->trap_signals;
-        $this->decide_action = isset($args['decide_action'])
-            ? $args['decide_action'] : null;
 
         foreach (array_keys($this->trap_signals) as $sig) {
             pcntl_signal($sig, array($this, '_signalHandler'), false);
