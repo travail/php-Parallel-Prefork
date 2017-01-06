@@ -81,7 +81,7 @@ class Prefork
         // main loop
         while ($this->signal_received === null) {
             $pid = null;
-            $currect_workers = count(array_keys($obj->worker_pids))
+            $currect_workers = count(array_keys($obj->worker_pids));
             $action = $currect_workers < $this->max_workers;
             try {
                 $action = call_user_func_array($this->decide_action,array($currect_workers, $this->max_workers));
