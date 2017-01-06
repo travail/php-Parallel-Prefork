@@ -81,12 +81,14 @@ class Prefork
         // main loop
         while ($this->signal_received === null) {
             $pid = null;
-            $currect_workers = count(array_keys($obj->worker_pids));
+            $currect_workers = count(array_keys($this->worker_pids));
             $action = $currect_workers < $this->max_workers;
-            try {
-                $action = call_user_func_array($this->decide_action,array($currect_workers, $this->max_workers));
-            } catch ( \Exception $e ) {
-                printf("Exception. Use default action: %s\n",$e->getMessage());
+            if ( isset($this->decide_action) ) {
+                try {
+                    $action = call_user_func_array($this->decide_action,array($currect_workers, $this->max_workers));
+                } catch ( \Exception $e ) {
+                    printf("Exception. Use default action: %s\n",$e->getMessage());
+                }
             }
             if ($action) {
                 $pid = pcntl_fork();
