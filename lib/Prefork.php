@@ -30,6 +30,10 @@ class Prefork
      * @var callable lamda function that is called when a child is reaped
      */
     public $on_child_reap = null;
+    /**
+     * @var callable lamda fuction that decide action
+     */
+    public $decide_action = null;
 
     private $signal_received = null;
     private $manager_pid     = null;
@@ -43,6 +47,8 @@ class Prefork
             ? $args['max_workers'] : $this->max_workers;
         $this->trap_signals = isset($args['trap_signals'])
             ? $args['trap_signals'] : $this->trap_signals;
+        $this->decide_action = isset($args['decide_action'])
+            ? $args['decide_action'] : null;
 
         foreach (array_keys($this->trap_signals) as $sig) {
             pcntl_signal($sig, array($this, '_signalHandler'), false);
@@ -75,7 +81,13 @@ class Prefork
         // main loop
         while ($this->signal_received === null) {
             $pid = null;
-            if (count(array_keys($this->worker_pids)) < $this->max_workers) {
+            $action = count(array_keys($obj->worker_pids)) < $obj->max_workers;
+            try {
+                $action = call_user_func_array($this->decide_action,array($this));
+            } catch ( \Exception $e ) {
+                printf("Exception. Use default action: %s\n",$e->getMessage());
+            }
+            if ($action) {
                 $pid = pcntl_fork();
                 if ($pid === -1) {
                     echo "fork failed!\n";
@@ -164,16 +176,16 @@ class Prefork
         return $this->generation;
     }
 
-    // PHP 5.2.x don't have lamda function
     private function _runChildReapCb($exit_pid, $status)
     {
         $cb = $this->on_child_reap;
         if ($cb) {
-/*
             try {
-                $cb->($exit_pid, $status);
-            }
-*/
+                call_user_func_array($cb, array($exit_pid, $status));
+            } catch (\Exception $e) {
+                // ignore
+                printf("Ignore Exception: %s\n",$e->getMessage());
+            };
         }
     }
 }
