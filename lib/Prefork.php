@@ -27,13 +27,14 @@ class Prefork
     public $err_respawn_interval = 1;
 
     /**
-     * @var callable lamda function that is called when a child is reaped
+     * @var callable lambda function that is called when a child is reaped
      */
     public $on_child_reap = null;
+
     /**
-     * @var callable lamda fuction that decide action
+     * callable lambda fuction that decide action
      */
-    public $decide_action = null;
+    private $decide_action = null;
 
     private $signal_received = null;
     private $manager_pid     = null;
@@ -47,6 +48,11 @@ class Prefork
             ? $args['max_workers'] : $this->max_workers;
         $this->trap_signals = isset($args['trap_signals'])
             ? $args['trap_signals'] : $this->trap_signals;
+        $this->decide_action = isset($args['decide_action'])
+            ? $args['decide_action'] : null;
+        if ( isset($this->decide_action) && !is_callable($this->decide_action) ){
+            die("decide_action should be callable\n");
+        }
 
         foreach (array_keys($this->trap_signals) as $sig) {
             pcntl_signal($sig, array($this, '_signalHandler'), false);
@@ -80,15 +86,15 @@ class Prefork
         while ($this->signal_received === null) {
             $pid = null;
             $currect_workers = count(array_keys($this->worker_pids));
-            $action = $currect_workers < $this->max_workers;
-            if ( isset($this->decide_action) ) {
+            $should_fork = $currect_workers < $this->max_workers;
+            if ( is_callable($this->decide_action) ) {
                 try {
-                    $action = call_user_func_array($this->decide_action,array($currect_workers, $this->max_workers));
+                    $should_fork = call_user_func_array($this->decide_action,array($currect_workers, $this->max_workers));
                 } catch ( \Exception $e ) {
                     printf("Exception. Use default action: %s\n",$e->getMessage());
                 }
             }
-            if ($action) {
+            if ($should_fork) {
                 $pid = pcntl_fork();
                 if ($pid === -1) {
                     echo "fork failed!\n";
@@ -180,7 +186,7 @@ class Prefork
     private function _runChildReapCb($exit_pid, $status)
     {
         $cb = $this->on_child_reap;
-        if ($cb) {
+        if (is_callable($cb)) {
             try {
                 call_user_func_array($cb, array($exit_pid, $status));
             } catch (\Exception $e) {
