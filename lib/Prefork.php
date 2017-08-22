@@ -44,14 +44,14 @@ class Prefork
         $this->trap_signals = isset($args['trap_signals'])
             ? $args['trap_signals'] : $this->trap_signals;
 
+        $self = $this;
         foreach (array_keys($this->trap_signals) as $sig) {
-            pcntl_signal($sig, array($this, '_signalHandler'), false);
+            pcntl_signal(
+                $sig,
+                function ($sig) use ($self) {$self->signal_received = $sig;},
+                false
+            );
         }
-    }
-
-    private function _signalHandler(&$sig)
-    {
-        $this->signal_received = $sig;
     }
 
     /**
