@@ -95,9 +95,7 @@ class Prefork
                 }
                 $this->worker_pids[$pid] = $this->generation;
             }
-            $exit_pid = is_null($pid)
-                ? pcntl_waitpid(-1, $status)
-                : pcntl_waitpid(-1, $status, WNOHANG);
+            $exit_pid = pcntl_waitpid(-1, $status, WNOHANG);
             if ($exit_pid > 0 && isset($status)) {
                 $this->_runChildReapCb($exit_pid, $status);
                 if (
@@ -108,6 +106,8 @@ class Prefork
                     sleep($this->err_respawn_interval);
                 }
                 unset($this->worker_pids[$exit_pid]);
+            } else {
+                sleep(1);
             }
         }
         // send signals to workers
