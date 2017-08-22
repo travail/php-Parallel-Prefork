@@ -17,27 +17,27 @@ class Prefork
     public $trap_signals = array(SIGTERM => SIGTERM);
 
     /**
-     * @var integer The number of the workers
+     * @var int The number of the workers
      */
     public $max_workers = 10;
 
     /**
-     * @var integer number of seconds to deter spawning of child processes after a worker exits abnormally
+     * @var int number of seconds to deter spawning of child processes after a worker exits abnormally
      */
     public $err_respawn_interval = 1;
 
     /**
-     * @var callable lamda function that is called when a child is reaped
+     * @var callable lambda function that is called when a child is reaped
      */
-    public $on_child_reap = null;
+    public $on_child_reap;
 
-    private $signal_received = null;
-    private $manager_pid     = null;
-    private $in_child        = false;
-    private $worker_pids     = array();
-    private $generation      = 0;
+    private $signal_received;
+    private $manager_pid;
+    private $in_child    = false;
+    private $worker_pids = array();
+    private $generation  = 0;
 
-    function __construct(array $args = array())
+    public function __construct(array $args = array())
     {
         $this->max_workers = isset($args['max_workers'])
             ? $args['max_workers'] : $this->max_workers;
@@ -57,7 +57,7 @@ class Prefork
     /**
      * The main routine. Returns true within manager process upon receiving a signal specified in the trap_signals, false in child processes.
      *
-     * @return bool True in manager proccess, false in child processes
+     * @return bool True in manager process, false in child processes
      */
     public function start()
     {
@@ -70,7 +70,9 @@ class Prefork
         }
 
         // for debugging
-        if ($this->max_workers === 0) return true;
+        if ($this->max_workers === 0) {
+            return true;
+        }
 
         // main loop
         while ($this->signal_received === null) {
@@ -78,7 +80,6 @@ class Prefork
             if (count(array_keys($this->worker_pids)) < $this->max_workers) {
                 $pid = pcntl_fork();
                 if ($pid === -1) {
-                    echo "fork failed!\n";
                     sleep($this->err_respawn_interval);
                     continue;
                 }
@@ -86,7 +87,7 @@ class Prefork
                     // child process
                     $this->in_child = true;
                     foreach (array_keys($this->trap_signals) as $sig) {
-                        pcntl_signal($sig, SIG_DFL, true);
+                        pcntl_signal($sig, SIG_DFL);
                     }
                     if ($this->signal_received !== null) {
                         exit(0);
@@ -95,16 +96,14 @@ class Prefork
                 }
                 $this->worker_pids[$pid] = $this->generation;
             }
-            $exit_pid = is_null($pid)
-                ? pcntl_waitpid(-1, $status)
-                : pcntl_waitpid(-1, $status, WNOHANG);
-            if ($exit_pid > 0 && isset($status)) {
-                $this->_runChildReapCb($exit_pid, $status);
+            $exit_pid = $pid === null ? pcntl_waitpid(-1, $status) : pcntl_waitpid(-1, $status, WNOHANG);
+            if ($exit_pid > 0 && $status !== null) {
+                $this->runChildReap($exit_pid, $status);
                 if (
-                    isset($this->worker_pids[$exit_pid])
-                    && $this->worker_pids[$exit_pid] === $this->generation
-                    && pcntl_wifexited($status) !== true
-                    ) {
+                    isset($this->worker_pids[$exit_pid]) &&
+                    $this->worker_pids[$exit_pid] === $this->generation &&
+                    pcntl_wifexited($status) !== true
+                ) {
                     sleep($this->err_respawn_interval);
                 }
                 unset($this->worker_pids[$exit_pid]);
@@ -120,12 +119,16 @@ class Prefork
 
     /**
      * Child processes (when executed by a zero-argument call to start) should call this function for termination. Takes exit code as an optional argument. Only usable from child processes.
+     *
+     * @param int $exit_code
      */
-    public function finish($exitCode = 0)
+    public function finish($exit_code = 0)
     {
-        if ($this->max_workers === 0) return;
+        if ($this->max_workers === 0) {
+            return;
+        }
 
-        exit($exitCode);
+        exit($exit_code);
     }
 
     /**
@@ -136,13 +139,15 @@ class Prefork
         foreach (array_keys($this->worker_pids) as $pid) {
             if ($exit_pid = pcntl_wait($status)) {
                 unset($this->worker_pids[$exit_pid]);
-                $this->_runChildReapCb($pid, $status);
+                $this->runChildReap($pid, $status);
             }
         }
     }
 
     /**
      * Sends signal to all worker processes. Only usable from manager process.
+     *
+     * @param int $sig
      */
     public function signalAllChildren($sig)
     {
@@ -159,21 +164,15 @@ class Prefork
         return $this->signal_received;
     }
 
-    private function generation()
+    /**
+     * @param $exit_pid
+     * @param $status
+     */
+    private function runChildReap($exit_pid, $status)
     {
-        return $this->generation;
-    }
-
-    // PHP 5.2.x don't have lamda function
-    private function _runChildReapCb($exit_pid, $status)
-    {
-        $cb = $this->on_child_reap;
-        if ($cb) {
-/*
-            try {
-                $cb->($exit_pid, $status);
-            }
-*/
+        $callback = $this->on_child_reap;
+        if (is_callable($callback)) {
+            $callback($exit_pid, $status);
         }
     }
 }
