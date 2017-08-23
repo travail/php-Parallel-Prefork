@@ -45,10 +45,15 @@ class Prefork
 
     public function __construct(array $args = [])
     {
-        $this->max_workers = isset($args['max_workers'])
-            ? $args['max_workers'] : $this->max_workers;
-        $this->trap_signals = isset($args['trap_signals'])
-            ? $args['trap_signals'] : $this->trap_signals;
+        if (array_key_exists('max_workers', $args)) {
+            $this->max_workers = (int)$args['max_workers'];
+        }
+        if (array_key_exists('trap_signals', $args) && is_array($args['trap_signals'])) {
+            $this->trap_signals = $args['trap_signals'];
+        }
+        if (array_key_exists('err_respawn_interval', $args)) {
+            $this->err_respawn_interval = (int)$args['err_respawn_interval'];
+        }
 
         $self = $this;
         foreach (array_keys($this->trap_signals) as $sig) {
