@@ -7,37 +7,43 @@ declare(ticks = 1);
 class Prefork
 {
     /**
-     * @var string The version of this package
+     * @var string The version of this package.
      */
-    const VERSION = '0.1.0';
+    const VERSION = '0.2.0-BETA';
 
     /**
-     * @var array Manager process will trap the signals listed in the keys of the array, and send the signal specified in the associated value to all worker processes.
+     * @var array $trap_signals Manager process will trap the signals listed in the keys of the array, and send the signal specified in the associated value to all worker processes.
      */
-    public $trap_signals = array(SIGTERM => SIGTERM);
+    public $trap_signals = [SIGTERM => SIGTERM];
 
     /**
-     * @var int The number of the workers
+     * @var int $max_workers The number of the workers.
      */
     public $max_workers = 10;
 
     /**
-     * @var int number of seconds to deter spawning of child processes after a worker exits abnormally
+     * @var int $err_respawn_interval Number of seconds to deter spawning of child processes after a worker exits abnormally.
      */
     public $err_respawn_interval = 1;
 
     /**
-     * @var callable lambda function that is called when a child is reaped
+     * @var callable $on_child_reap Lambda function that is called when a child is reaped.
      */
     public $on_child_reap;
 
     private $signal_received;
     private $manager_pid;
     private $in_child    = false;
-    private $worker_pids = array();
+    private $worker_pids = [];
     private $generation  = 0;
 
-    public function __construct(array $args = array())
+    /**
+     * @var int $spawn_interval Seconds to wait when the number of child processes is equal to $max_workers.
+     * @fixme This property is for ad-hoc solution and should be removed.
+     */
+    private $spawn_interval = 1;
+
+    public function __construct(array $args = [])
     {
         $this->max_workers = isset($args['max_workers'])
             ? $args['max_workers'] : $this->max_workers;
@@ -69,12 +75,12 @@ class Prefork
             die("Cannot start another process while you are in child process\n");
         }
 
-        // for debugging
+        // For debugging.
         if ($this->max_workers === 0) {
             return true;
         }
 
-        // main loop
+        // Main loop.
         while ($this->signal_received === null) {
             $pid = null;
             if (count(array_keys($this->worker_pids)) < $this->max_workers) {
@@ -84,7 +90,7 @@ class Prefork
                     continue;
                 }
                 if ($pid === 0) {
-                    // child process
+                    // Child process.
                     $this->in_child = true;
                     foreach (array_keys($this->trap_signals) as $sig) {
                         pcntl_signal($sig, SIG_DFL);
@@ -92,11 +98,19 @@ class Prefork
                     if ($this->signal_received !== null) {
                         exit(0);
                     }
+
                     return false;
                 }
                 $this->worker_pids[$pid] = $this->generation;
             }
-            $exit_pid = $pid === null ? pcntl_waitpid(-1, $status) : pcntl_waitpid(-1, $status, WNOHANG);
+
+            // $exit_pid = $pid === null ? pcntl_waitpid(-1, $status) : pcntl_waitpid(-1, $status, WNOHANG);
+            // @fixme pcntl_waitpid(-1, $status) blocks in some cases with PHP 7. Set WNOHANG at all times and sleep when no child processes spawned.
+            $exit_pid = pcntl_waitpid(-1, $status, WNOHANG);
+            if ($pid === null) {
+                sleep($this->spawn_interval);
+            }
+
             if ($exit_pid > 0 && $status !== null) {
                 $this->runChildReap($exit_pid, $status);
                 if (
@@ -109,7 +123,8 @@ class Prefork
                 unset($this->worker_pids[$exit_pid]);
             }
         }
-        // send signals to workers
+
+        // Send signals to workers.
         if ($sig = $this->trap_signals[$this->signal_received]) {
             $this->signalAllChildren($sig);
         }
@@ -165,8 +180,8 @@ class Prefork
     }
 
     /**
-     * @param $exit_pid
-     * @param $status
+     * @param int $exit_pid
+     * @param int $status
      */
     private function runChildReap($exit_pid, $status)
     {
