@@ -9,7 +9,7 @@ class Prefork
     /**
      * @var string The version of this package.
      */
-    const VERSION = '0.2.0';
+    const VERSION = '0.2.1';
 
     /**
      * @var array $trap_signals Manager process will trap the signals listed in the keys of the array, and send the signal specified in the associated value to all worker processes.
