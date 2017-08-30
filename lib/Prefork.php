@@ -9,7 +9,7 @@ class Prefork
     /**
      * @var string The version of this package.
      */
-    const VERSION = '0.2.0-BETA';
+    const VERSION = '0.2.0';
 
     /**
      * @var array $trap_signals Manager process will trap the signals listed in the keys of the array, and send the signal specified in the associated value to all worker processes.
@@ -36,12 +36,6 @@ class Prefork
     private $in_child    = false;
     private $worker_pids = [];
     private $generation  = 0;
-
-    /**
-     * @var int $spawn_interval Seconds to wait when the number of child processes is equal to $max_workers.
-     * @fixme This property is for ad-hoc solution and should be removed.
-     */
-    private $spawn_interval = 1;
 
     public function __construct(array $args = [])
     {
@@ -109,12 +103,7 @@ class Prefork
                 $this->worker_pids[$pid] = $this->generation;
             }
 
-            // $exit_pid = $pid === null ? pcntl_waitpid(-1, $status) : pcntl_waitpid(-1, $status, WNOHANG);
-            // @fixme pcntl_waitpid(-1, $status) blocks in some cases with PHP 7. Set WNOHANG at all times and sleep when no child processes spawned.
-            $exit_pid = pcntl_waitpid(-1, $status, WNOHANG);
-            if ($pid === null) {
-                sleep($this->spawn_interval);
-            }
+            $exit_pid = $pid === null ? pcntl_waitpid(-1, $status) : pcntl_waitpid(-1, $status, WNOHANG);
 
             if ($exit_pid > 0 && $status !== null) {
                 $this->runChildReap($exit_pid, $status);
