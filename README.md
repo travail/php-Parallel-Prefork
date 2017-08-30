@@ -13,13 +13,13 @@ use \Parallel\Prefork;
 
 require_once '/path/to/vendor/autoload.php';
 
-$pp = new Prefork(array(
+$pp = new Prefork([
     'max_workers'  => 5,
-    'trap_signals' => array(
+    'trap_signals' => [
         SIGHUP  => SIGTERM,
         SIGTERM => SIGTERM,
-    ),
-));
+    ],
+]);
 
 while ($pp->signalReceived() !== SIGTERM) {
     if ($pp->start()) {
